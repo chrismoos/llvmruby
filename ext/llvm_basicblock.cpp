@@ -133,7 +133,7 @@ llvm_builder_malloc(VALUE self, VALUE rtype, VALUE rsize) {
   const Type *type;
   Data_Get_Struct(rtype, Type, type);
 
-  Value *size = ConstantInt::get(Type::Int32Ty, FIX2INT(rsize));
+  Value *size = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), FIX2INT(rsize));
   Instruction *v = builder->CreateMalloc(type, size);
   return llvm_instruction_wrap(v);
 }
@@ -153,7 +153,7 @@ llvm_builder_alloca(VALUE self, VALUE rtype, VALUE rsize) {
   const Type* type;
   Data_Get_Struct(rtype, Type, type);
 
-  Value *size = ConstantInt::get(Type::Int32Ty, FIX2INT(rsize));
+  Value *size = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), FIX2INT(rsize));
   Instruction *v = builder->CreateAlloca(type, size);
   return Data_Wrap_Struct(cLLVMAllocationInst, NULL, NULL, v);
 }
@@ -286,7 +286,7 @@ llvm_builder_extract_element(VALUE self, VALUE rv, VALUE ridx) {
 
 VALUE
 llvm_builder_get_global(VALUE self) {
-  GlobalVariable *g = new GlobalVariable(Type::Int64Ty, false, GlobalValue::ExternalLinkage, 0, "shakalaka");
+  GlobalVariable *g = new GlobalVariable(getGlobalContext(), Type::getInt64Ty(getGlobalContext()), false, GlobalValue::ExternalLinkage, 0, "shakalaka");
   return llvm_value_wrap(g);
 }
 

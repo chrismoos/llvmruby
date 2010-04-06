@@ -11,7 +11,7 @@ OBJ = "ext/llvmruby." + Config::CONFIG["DLEXT"]
 
 file "ext/Makefile" do
   #cmd = "extconf.rb --with-llvm-include=`llvm-config --includedir` --with-llvm-lib=`llvm-config --libdir`"
-  cmd = 'extconf.rb'
+  cmd = 'extconf.rb --cflags=-g3'
   Dir.chdir("ext") { ruby(cmd) }
 end
 

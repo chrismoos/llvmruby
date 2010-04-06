@@ -317,7 +317,7 @@ class BasicTests < Test::Unit::TestCase
     function_tester(666) do |f|
       b = f.create_block.builder
       vt = Type.vector(MACHINE_WORD, 3) 
-      vp = b.alloca(vt, 0)
+      vp = b.alloca(vt, 1)
       v = b.load(vp) 
       v2 = b.insert_element(v, 666.llvm(MACHINE_WORD), 0.llvm(Type::Int32Ty))
       r = b.extract_element(v2, 0.llvm(Type::Int32Ty))

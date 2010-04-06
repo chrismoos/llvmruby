@@ -30,7 +30,7 @@ end
 
 module LLVM
   # enum llvm::Type::TypeID
-  VoidTyID, FloatTyID, DoubleTyID, X86_FP80TyID, FP128TyID, PPC_FP128TyID, LabelTyID, IntegerTyID, 
+  VoidTyID, FloatTyID, DoubleTyID, X86_FP80TyID, FP128TyID, PPC_FP128TyID, LabelTyID, MetadataTyID, IntegerTyID, 
   FunctionTyID, StructTyID, ArrayTyID, PointerTyID, OpaqueTyID, VectorTyID = (0..13).to_a
   
   class Builder

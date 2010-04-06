@@ -3,7 +3,8 @@
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Support/MemoryBuffer.h"
-#include <fstream>
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/raw_ostream.h"
 #include <sstream>
 
 extern "C" {
@@ -16,7 +17,7 @@ llvm_module_allocate(VALUE klass) {
 VALUE
 llvm_module_initialize(VALUE self, VALUE rname) {
   Check_Type(rname, T_STRING);
-  DATA_PTR(self) = new Module(StringValuePtr(rname));
+  DATA_PTR(self) = new Module(StringValuePtr(rname), getGlobalContext());
   return self;
 }
 
@@ -44,7 +45,7 @@ llvm_module_global_variable(VALUE self, VALUE rtype, VALUE rinitializer) {
   Module *m = LLVM_MODULE(self);
   Type *type = LLVM_TYPE(rtype);
   Constant *initializer = (Constant*)DATA_PTR(rinitializer);
-  GlobalVariable *gv = new GlobalVariable(type, true, GlobalValue::InternalLinkage, initializer, "", m);
+  GlobalVariable *gv = new GlobalVariable(getGlobalContext(), type, true, GlobalValue::InternalLinkage, initializer, "", m);
   return llvm_value_wrap(gv);
 }
 
@@ -98,7 +99,7 @@ llvm_execution_engine_get(VALUE klass, VALUE module) {
   ExistingModuleProvider *MP = new ExistingModuleProvider(m);
 
   if(EE == NULL) {
-    EE = ExecutionEngine::create(MP, false);
+    EE = ExecutionEngine::create(MP, true);
   } else {
     EE->addModuleProvider(MP);
   }
@@ -125,11 +126,12 @@ VALUE
 llvm_module_read_assembly(VALUE self, VALUE assembly) {
   Check_Type(assembly, T_STRING);
 
-  ParseError e;
+  SMDiagnostic e;
   Module *module = ParseAssemblyString(
     StringValuePtr(assembly),
-    LLVM_MODULE(self),
-    &e
+    NULL,
+    e,
+    getGlobalContext()
   );
   //TODO How do we handle errors?
   return Data_Wrap_Struct(cLLVMModule, NULL, NULL, module);
@@ -140,7 +142,7 @@ llvm_module_read_bitcode(VALUE self, VALUE bitcode) {
   Check_Type(bitcode, T_STRING);
 
   MemoryBuffer *buf = MemoryBuffer::getMemBufferCopy(RSTRING(bitcode)->ptr,RSTRING(bitcode)->ptr+RSTRING(bitcode)->len);
-  Module *module = ParseBitcodeFile(buf);
+  Module *module = ParseBitcodeFile(buf, getGlobalContext());
   delete buf;
   return Data_Wrap_Struct(cLLVMModule, NULL, NULL, module);
 }
@@ -152,9 +154,11 @@ llvm_module_write_bitcode(VALUE self, VALUE file_name) {
 
   // Don't really know how to handle c++ streams well, 
   // dumping all into string buffer and then saving
-  std::ofstream file;
-  file.open(StringValuePtr(file_name)); 
+  std::string err;
+  raw_fd_ostream file(StringValuePtr(file_name), true, true, err);
+
   WriteBitcodeToFile(LLVM_MODULE(self), file);   // Convert value into a string.
+  file.close();
   return Qtrue;
 }
 
@@ -182,6 +186,9 @@ llvm_execution_engine_run_function(int argc, VALUE *argv, VALUE klass) {
 /* For tests: assume no args, return uncoverted int and turn it into fixnum */
 VALUE llvm_execution_engine_run_autoconvert(VALUE klass, VALUE func) {
   std::vector<GenericValue> args;
+
+  CHECK_TYPE(func, cLLVMFunction);
+
   GenericValue v = EE->runFunction(LLVM_FUNCTION(func), args);
   VALUE val = INT2NUM(v.IntVal.getZExtValue());
   return val;
